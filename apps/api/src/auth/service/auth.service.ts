@@ -1,4 +1,4 @@
-import { Injectable, NotImplementedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import type { Credentials, Session } from "@mini-otl/contracts";
 import { UserRepository } from "../repository/user.repository";
@@ -10,8 +10,17 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  async login(_credentials: Credentials): Promise<Session> {
-    // TODO(02a): Check the seeded credentials and sign a token with the user ID.
-    throw new NotImplementedException("로그인 실습을 진행해 주세요.");
+  async login({ username, password }: Credentials): Promise<Session> {
+    const user = await this.users.findByUsername(username);
+    if (!user || user.password !== password) {
+      throw new UnauthorizedException(
+        "아이디 또는 비밀번호가 올바르지 않습니다.",
+      );
+    }
+
+    return {
+      accessToken: await this.jwt.signAsync({ sub: user.id }),
+      user: { id: user.id, username: user.username, name: user.name },
+    };
   }
 }
