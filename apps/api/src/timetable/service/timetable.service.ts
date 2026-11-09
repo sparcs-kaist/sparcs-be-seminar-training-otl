@@ -11,9 +11,8 @@ export class TimetableService {
     private readonly lectures: LectureRepository,
   ) {}
 
-  findMine(_userId: number): Promise<Lecture[]> {
-    // TODO(03b): Return the lectures for the authenticated user.
-    throw new NotImplementedException("내 시간표 조회를 구현해 주세요.");
+  findMine(userId: number): Promise<Lecture[]> {
+    return this.timetable.findByUser(userId);
   }
 
   addTimetableLecture(userId: number, lectureId: number) {
