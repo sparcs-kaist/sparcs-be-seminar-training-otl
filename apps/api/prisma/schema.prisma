@@ -9,25 +9,27 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  username String   @unique @db.VarChar(32)
-  name     String   @db.VarChar(50)
-  password String?  @db.VarChar(72)
-  reviews  Review[]
+  id        Int                @id @default(autoincrement())
+  username  String             @unique @db.VarChar(32)
+  name      String             @db.VarChar(50)
+  password  String?            @db.VarChar(72)
+  timetable TimetableLecture[]
+  reviews   Review[]
 }
 
 model Lecture {
-  id         Int         @id
-  code       String      @db.VarChar(16)
-  classNo    String      @db.VarChar(4)
-  title      String      @db.VarChar(100)
-  titleEn    String      @db.VarChar(150)
-  department String      @db.VarChar(50)
-  professor  String      @db.VarChar(50)
+  id         Int                @id
+  code       String             @db.VarChar(16)
+  classNo    String             @db.VarChar(4)
+  title      String             @db.VarChar(100)
+  titleEn    String             @db.VarChar(150)
+  department String             @db.VarChar(50)
+  professor  String             @db.VarChar(50)
   credit     Int
   year       Int
   semester   Int
   deletedAt  DateTime?
+  timetable  TimetableLecture[]
   classes    ClassTime[]
   reviews    Review[]
 }
@@ -41,6 +43,16 @@ model ClassTime {
   lecture   Lecture @relation(fields: [lectureId], references: [id], onDelete: Cascade)
 
   @@id([lectureId, day, begin])
+}
+
+model TimetableLecture {
+  userId    Int
+  lectureId Int
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lecture   Lecture @relation(fields: [lectureId], references: [id], onDelete: Restrict)
+
+  @@id([userId, lectureId])
+  @@index([lectureId])
 }
 
 model Review {
@@ -57,5 +69,4 @@ model Review {
   @@map("review")
 }
 
-// TODO(03a): Add TimetableLecture and the reverse relations on User and Lecture.
 // TODO(08a): Add ReviewHeart, its reverse relations and Review.heartCount.
