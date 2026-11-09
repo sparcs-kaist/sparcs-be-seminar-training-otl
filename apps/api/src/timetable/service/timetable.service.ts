@@ -40,4 +40,8 @@ export class TimetableService {
   async removeLecture(userId: number, lectureId: number) {
     await this.timetable.remove(userId, lectureId);
   }
+
+  async removeDeletedLecture(lectureId: number) {
+    await this.timetable.removeByLecture(lectureId);
+  }
 }

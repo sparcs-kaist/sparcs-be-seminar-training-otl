@@ -5,7 +5,6 @@ import { LecturesService } from "./service/lectures.service";
 
 @Module({
   controllers: [LecturesController],
-  providers: [LectureRepository, LecturesService],
   exports: [LectureRepository],
 })
 export class LecturesModule {}

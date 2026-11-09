@@ -37,4 +37,10 @@ export class TimetableRepository {
       where: { userId, lectureId },
     });
   }
+
+  async removeByLecture(lectureId: number) {
+    return await this.prisma.timetableLecture.deleteMany({
+      where: { lectureId },
+    });
+  }
 }

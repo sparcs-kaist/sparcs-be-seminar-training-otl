@@ -32,4 +32,18 @@ export class LectureRepository {
       orderBy: [{ code: "asc" }, { classNo: "asc" }, { id: "asc" }],
     });
   }
+
+  async markDeleted(id: number) {
+    const { count } = await this.prisma.lecture.updateMany({
+      where: { id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+    if (count > 0) return "deleted";
+
+    const existing = await this.prisma.lecture.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    return existing ? "already-deleted" : "missing";
+  }
 }

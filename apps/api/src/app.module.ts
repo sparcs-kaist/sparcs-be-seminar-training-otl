@@ -1,3 +1,4 @@
+import { EventEmitterModule } from "@nestjs/event-emitter";
 import { EnvModule } from "@mini-otl/env";
 import { TransactionsModule } from "./database/transactions.module";
 import { Controller, Get, Module } from "@nestjs/common";
@@ -18,6 +19,7 @@ class HealthController {
   imports: [
     EnvModule,
     TransactionsModule,
+    EventEmitterModule.forRoot(),
     LecturesModule,
     AuthModule,
     TimetableModule,
