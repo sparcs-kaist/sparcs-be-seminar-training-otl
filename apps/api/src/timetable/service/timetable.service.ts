@@ -1,9 +1,5 @@
 import type { ClassTime, Lecture } from "@mini-otl/contracts";
-import {
-  Injectable,
-  NotFoundException,
-  NotImplementedException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { LectureRepository } from "../../lectures/repository/lecture.repository";
 import { TimetableRepository } from "../repository/timetable.repository";
@@ -56,9 +52,8 @@ export class TimetableService {
     await this.timetable.add(userId, lectureId, db);
   }
 
-  async removeLecture(_userId: number, _lectureId: number): Promise<void> {
-    // TODO(06b): Remove only this user's timetable entry.
-    throw new NotImplementedException("시간표 빼기를 구현해 주세요.");
+  removeLecture(userId: number, lectureId: number): Promise<void> {
+    return this.timetable.remove(userId, lectureId);
   }
 
   removeDeletedLecture(lectureId: number) {
