@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  NotImplementedException,
 } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
 import { LectureRepository } from "../../lectures/repository/lecture.repository";
@@ -48,13 +47,32 @@ export class ReviewsService {
   }
 
   async setHeart(
-    _lectureId: number,
-    _reviewId: number,
-    _userId: number,
-    _hearted: boolean,
+    lectureId: number,
+    reviewId: number,
+    userId: number,
+    hearted: boolean,
   ): Promise<void> {
-    // TODO(08b): Add or remove the heart and update its count in one transaction.
-    throw new NotImplementedException("리뷰 하트를 구현해 주세요.");
+    await this.requireActiveLecture(lectureId);
+    await this.prisma.$transaction(async db => {
+      const review = await this.reviews.findAuthorForHeart(
+        lectureId,
+        reviewId,
+        db,
+      );
+      if (!review) throw new NotFoundException("리뷰를 찾을 수 없습니다.");
+      if (review.userId === userId) {
+        throw new ForbiddenException(
+          "본인이 작성한 리뷰에는 하트를 누를 수 없습니다.",
+        );
+      }
+
+      const { count } = hearted
+        ? await this.reviews.addHeart(reviewId, userId, db)
+        : await this.reviews.removeHeart(reviewId, userId, db);
+      if (count > 0) {
+        await this.reviews.changeHeartCount(reviewId, hearted ? 1 : -1, db);
+      }
+    });
   }
 
   private async requireActiveLecture(lectureId: number) {
