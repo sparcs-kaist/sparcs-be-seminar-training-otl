@@ -1,5 +1,5 @@
 import { ConfigService } from "@mini-otl/env";
-import { Injectable, NotImplementedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 
@@ -15,8 +15,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(_payload: { sub?: unknown }): AuthenticatedUser {
-    // TODO(02b): Validate the subject and return the user for request.user.
-    throw new NotImplementedException("JWT 사용자 확인을 구현해 주세요.");
+  validate({ sub }: { sub?: unknown }): AuthenticatedUser {
+    if (typeof sub !== "number" || !Number.isSafeInteger(sub) || sub < 1) {
+      throw new UnauthorizedException();
+    }
+    return { id: sub };
   }
 }

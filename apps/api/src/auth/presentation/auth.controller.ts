@@ -2,17 +2,27 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   Post,
+  Req,
+  UseGuards,
 } from "@nestjs/common";
 import type { Credentials } from "@mini-otl/contracts";
 import { AuthService } from "../service/auth.service";
+import { JwtAuthGuard } from "./jwt-auth.guard";
+import type { AuthenticatedUser } from "./jwt.strategy";
 
 @Controller("auth")
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  // TODO(02b): Add GET /api/auth/me protected by JwtAuthGuard.
+  @Get("me")
+  @UseGuards(JwtAuthGuard)
+  me(@Req() { user }: { user: AuthenticatedUser }) {
+    return user;
+  }
+
   @Post("login")
   @HttpCode(200)
   login(@Body() body?: Partial<Credentials>) {
