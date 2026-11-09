@@ -1,29 +1,57 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
+  HttpCode,
   NotImplementedException,
+  Param,
   Post,
+  Req,
+  UseGuards,
 } from "@nestjs/common";
+import { reviewContentLimit, reviewContentSchema } from "@mini-otl/contracts";
+import { JwtAuthGuard } from "../../auth/presentation/jwt-auth.guard";
+import type { AuthenticatedUser } from "../../auth/presentation/jwt.strategy";
+import { ResourceIdPipe } from "../../common/resource-id.pipe";
+import { ReviewsService } from "../service/reviews.service";
+
+type ReviewRequest = { user: AuthenticatedUser };
 
 @Controller("lectures/:lectureId/reviews")
 export class ReviewsController {
+  constructor(private readonly reviews: ReviewsService) {}
+
   @Get()
-  findAll() {
-    // TODO(7): List reviews for an active lecture. This route is public.
-    throw new NotImplementedException("강의 리뷰 조회 실습을 진행해 주세요.");
+  findAll(@Param("lectureId", ResourceIdPipe) lectureId: number) {
+    return this.reviews.findAll(lectureId);
   }
 
   @Post()
-  create() {
-    // TODO(7): Require a JWT and allow one review per user and lecture.
-    throw new NotImplementedException("강의 리뷰 작성 실습을 진행해 주세요.");
+  @UseGuards(JwtAuthGuard)
+  create(
+    @Param("lectureId", ResourceIdPipe) lectureId: number,
+    @Req() { user }: ReviewRequest,
+    @Body() body?: { content?: unknown },
+  ) {
+    const content = reviewContentSchema.safeParse(body?.content);
+    if (!content.success)
+      throw new BadRequestException(
+        `리뷰를 1–${reviewContentLimit}자로 입력해 주세요.`,
+      );
+    return this.reviews.create(lectureId, user.id, content.data);
   }
 
   @Delete(":reviewId")
-  remove() {
-    // TODO(7): Compare the review author with the authenticated user and return 403 on mismatch.
-    throw new NotImplementedException("강의 리뷰 삭제 실습을 진행해 주세요.");
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(204)
+  remove(
+    @Param("lectureId", ResourceIdPipe) lectureId: number,
+    @Param("reviewId", ResourceIdPipe) reviewId: number,
+    @Req() { user }: ReviewRequest,
+  ) {
+    return this.reviews.remove(lectureId, reviewId, user.id);
   }
 
   @Post(":reviewId/heart")

@@ -33,6 +33,15 @@ export class LectureRepository {
     });
   }
 
+  async existsActive(id: number) {
+    return Boolean(
+      await this.prisma.lecture.findUnique({
+        where: { id, deletedAt: null },
+        select: { id: true },
+      }),
+    );
+  }
+
   async markDeleted(id: number) {
     const { count } = await this.prisma.lecture.updateMany({
       where: { id, deletedAt: null },

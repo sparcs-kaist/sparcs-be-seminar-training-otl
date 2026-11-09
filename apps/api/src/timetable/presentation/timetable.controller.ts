@@ -10,7 +10,7 @@ import {
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../../auth/presentation/jwt-auth.guard";
 import type { AuthenticatedUser } from "../../auth/presentation/jwt.strategy";
-import { LectureIdPipe } from "../../common/lecture-id.pipe";
+import { ResourceIdPipe } from "../../common/resource-id.pipe";
 import { TimetableService } from "../service/timetable.service";
 
 type AuthenticatedRequest = { user: AuthenticatedUser };
@@ -29,7 +29,7 @@ export class TimetableController {
   @HttpCode(204)
   addLecture(
     @Req() { user }: AuthenticatedRequest,
-    @Param("id", LectureIdPipe) id: number,
+    @Param("id", ResourceIdPipe) id: number,
   ) {
     return this.timetable.addTimetableLecture(user.id, id);
   }
@@ -38,7 +38,7 @@ export class TimetableController {
   @HttpCode(204)
   removeLecture(
     @Req() { user }: AuthenticatedRequest,
-    @Param("id", LectureIdPipe) id: number,
+    @Param("id", ResourceIdPipe) id: number,
   ) {
     return this.timetable.removeLecture(user.id, id);
   }
