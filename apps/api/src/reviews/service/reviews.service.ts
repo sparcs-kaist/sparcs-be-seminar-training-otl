@@ -1,4 +1,8 @@
-import { Injectable, NotImplementedException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  NotImplementedException,
+} from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
 import { LectureRepository } from "../../lectures/repository/lecture.repository";
 import { ReviewRepository } from "../repository/review.repository";
@@ -11,9 +15,9 @@ export class ReviewsService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async findAll(_lectureId: number, _viewerId?: number) {
-    // TODO(07a): Check that the lecture is active and list its reviews.
-    throw new NotImplementedException("리뷰 조회를 구현해 주세요.");
+  async findAll(lectureId: number, viewerId?: number) {
+    await this.requireActiveLecture(lectureId);
+    return this.reviews.findForLecture(lectureId, viewerId);
   }
 
   async create(_lectureId: number, _userId: number, _content: string) {
@@ -38,5 +42,11 @@ export class ReviewsService {
   ): Promise<void> {
     // TODO(08b): Add or remove the heart and update its count in one transaction.
     throw new NotImplementedException("리뷰 하트를 구현해 주세요.");
+  }
+
+  private async requireActiveLecture(lectureId: number) {
+    if (!(await this.lectures.existsActive(lectureId))) {
+      throw new NotFoundException("개설강의를 찾을 수 없습니다.");
+    }
   }
 }
