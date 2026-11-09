@@ -1,4 +1,4 @@
-import { Injectable, NotImplementedException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
 
@@ -8,26 +8,38 @@ const reviewSelection = {
   author: { select: { id: true, name: true } },
   content: true,
   createdAt: true,
+  heartCount: true,
 } satisfies Prisma.ReviewSelect;
 
 @Injectable()
 export class ReviewRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findForLecture(lectureId: number, _viewerId?: number) {
-    return this.prisma.review.findMany({
+  async findForLecture(lectureId: number, viewerId?: number) {
+    const reviews = await this.prisma.review.findMany({
       where: { lectureId },
       orderBy: { id: "desc" },
-      select: reviewSelection,
+      select: {
+        ...reviewSelection,
+        hearts:
+          viewerId === undefined
+            ? false
+            : { where: { userId: viewerId }, select: { userId: true } },
+      },
     });
+    return reviews.map(({ hearts, ...review }) => ({
+      ...review,
+      heartedByMe: Boolean(hearts?.length),
+    }));
   }
 
   async create(lectureId: number, userId: number, content: string) {
     try {
-      return await this.prisma.review.create({
+      const review = await this.prisma.review.create({
         data: { lectureId, userId, content },
         select: reviewSelection,
       });
+      return { ...review, heartedByMe: false };
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -47,38 +59,42 @@ export class ReviewRepository {
   }
 
   async findAuthorForHeart(
-    _lectureId: number,
-    _reviewId: number,
-    _db: Prisma.TransactionClient,
-  ): Promise<{ userId: number } | null> {
-    throw new NotImplementedException("리뷰 하트 Repository를 적용해 주세요.");
+    lectureId: number,
+    reviewId: number,
+    db: Prisma.TransactionClient,
+  ) {
+    // Lock the review before mutating its hearts so concurrent writes serialize.
+    const [review] = await db.$queryRaw<{ userId: number }[]>`
+      SELECT userId FROM review
+      WHERE id = ${reviewId} AND lectureId = ${lectureId}
+      FOR UPDATE
+    `;
+    return review ?? null;
   }
 
   remove(reviewId: number) {
     return this.prisma.review.deleteMany({ where: { id: reviewId } });
   }
 
-  async addHeart(
-    _reviewId: number,
-    _userId: number,
-    _db: Prisma.TransactionClient,
-  ): Promise<Prisma.BatchPayload> {
-    throw new NotImplementedException("리뷰 하트 Repository를 적용해 주세요.");
+  addHeart(reviewId: number, userId: number, db: Prisma.TransactionClient) {
+    return db.reviewHeart.createMany({
+      data: { reviewId, userId },
+      skipDuplicates: true,
+    });
   }
 
-  async removeHeart(
-    _reviewId: number,
-    _userId: number,
-    _db: Prisma.TransactionClient,
-  ): Promise<Prisma.BatchPayload> {
-    throw new NotImplementedException("리뷰 하트 Repository를 적용해 주세요.");
+  removeHeart(reviewId: number, userId: number, db: Prisma.TransactionClient) {
+    return db.reviewHeart.deleteMany({ where: { reviewId, userId } });
   }
 
   async changeHeartCount(
-    _reviewId: number,
-    _delta: 1 | -1,
-    _db: Prisma.TransactionClient,
-  ): Promise<void> {
-    throw new NotImplementedException("리뷰 하트 Repository를 적용해 주세요.");
+    reviewId: number,
+    delta: 1 | -1,
+    db: Prisma.TransactionClient,
+  ) {
+    await db.review.update({
+      where: { id: reviewId },
+      data: { heartCount: { increment: delta } },
+    });
   }
 }

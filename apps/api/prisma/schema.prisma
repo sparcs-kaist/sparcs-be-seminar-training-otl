@@ -9,12 +9,13 @@ datasource db {
 }
 
 model User {
-  id        Int                @id @default(autoincrement())
-  username  String             @unique @db.VarChar(32)
-  name      String             @db.VarChar(50)
-  password  String?            @db.VarChar(72)
-  timetable TimetableLecture[]
-  reviews   Review[]
+  id           Int                @id @default(autoincrement())
+  username     String             @unique @db.VarChar(32)
+  name         String             @db.VarChar(50)
+  password     String?            @db.VarChar(72)
+  timetable    TimetableLecture[]
+  reviews      Review[]
+  reviewHearts ReviewHeart[]
 }
 
 model Lecture {
@@ -29,8 +30,8 @@ model Lecture {
   year       Int
   semester   Int
   deletedAt  DateTime?
-  timetable  TimetableLecture[]
   classes    ClassTime[]
+  timetable  TimetableLecture[]
   reviews    Review[]
 }
 
@@ -56,17 +57,29 @@ model TimetableLecture {
 }
 
 model Review {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  lectureId Int
-  content   String   @db.VarChar(500)
-  createdAt DateTime @default(now())
-  author    User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  lecture   Lecture  @relation(fields: [lectureId], references: [id], onDelete: Restrict)
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  lectureId  Int
+  content    String   @db.VarChar(500)
+  heartCount Int      @default(0) @map("heart_count")
+  createdAt  DateTime @default(now())
+  author     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  lecture    Lecture  @relation(fields: [lectureId], references: [id], onDelete: Restrict)
+
+  hearts ReviewHeart[]
 
   @@unique([userId, lectureId])
   @@index([lectureId, id])
   @@map("review")
 }
 
-// TODO(08a): Add ReviewHeart, its reverse relations and Review.heartCount.
+model ReviewHeart {
+  reviewId Int
+  userId   Int
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([reviewId, userId])
+  @@index([userId])
+  @@map("review_heart")
+}
