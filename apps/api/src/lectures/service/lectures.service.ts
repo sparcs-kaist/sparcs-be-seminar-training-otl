@@ -1,5 +1,6 @@
-import { Injectable, NotImplementedException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { LectureDeleteEvent } from "../events/lecture-delete.event";
 import { LectureRepository } from "../repository/lecture.repository";
 
 @Injectable()
@@ -13,8 +14,14 @@ export class LecturesService {
     return this.lectures.findAllActive();
   }
 
-  async deleteLecture(_id: number): Promise<void> {
-    // TODO(05a): Mark the lecture as deleted and publish its event.
-    throw new NotImplementedException("강의 삭제 실습을 진행해 주세요.");
+  async deleteLecture(id: number): Promise<void> {
+    if (!(await this.lectures.markDeleted(id))) {
+      throw new NotFoundException("개설강의를 찾을 수 없습니다.");
+    }
+
+    await this.events.emitAsync(
+      LectureDeleteEvent.topic,
+      new LectureDeleteEvent(id),
+    );
   }
 }
