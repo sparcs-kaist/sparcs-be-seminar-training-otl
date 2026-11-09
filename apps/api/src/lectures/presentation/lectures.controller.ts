@@ -1,4 +1,4 @@
-import { Controller, Delete, HttpCode, Param } from "@nestjs/common";
+import { Controller, Delete, Get, HttpCode, Param } from "@nestjs/common";
 import { ResourceIdPipe } from "../../common/resource-id.pipe";
 import { LecturesService } from "../service/lectures.service";
 
@@ -6,7 +6,11 @@ import { LecturesService } from "../service/lectures.service";
 export class LecturesController {
   constructor(private readonly lectures: LecturesService) {}
 
-  // TODO(01a): Add GET /api/lectures and return a fixed JSON response.
+  @Get()
+  findAll() {
+    // TODO(01b): Replace this response with a Prisma query.
+    return [];
+  }
 
   @Delete(":id")
   @HttpCode(204)
