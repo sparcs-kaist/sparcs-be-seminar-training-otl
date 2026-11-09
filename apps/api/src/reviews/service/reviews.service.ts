@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   NotImplementedException,
@@ -31,12 +32,19 @@ export class ReviewsService {
   }
 
   async remove(
-    _lectureId: number,
-    _reviewId: number,
-    _userId: number,
+    lectureId: number,
+    reviewId: number,
+    userId: number,
   ): Promise<void> {
-    // TODO(07c): Verify authorship before deleting the review.
-    throw new NotImplementedException("리뷰 삭제를 구현해 주세요.");
+    await this.requireActiveLecture(lectureId);
+    const review = await this.reviews.findAuthor(lectureId, reviewId);
+    if (!review) throw new NotFoundException("리뷰를 찾을 수 없습니다.");
+    if (review.userId !== userId) {
+      throw new ForbiddenException("본인이 작성한 리뷰만 삭제할 수 있습니다.");
+    }
+
+    const { count } = await this.reviews.remove(reviewId);
+    if (!count) throw new NotFoundException("리뷰를 찾을 수 없습니다.");
   }
 
   async setHeart(
