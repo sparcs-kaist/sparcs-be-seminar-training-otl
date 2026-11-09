@@ -4,13 +4,15 @@ import {
   Get,
   NotImplementedException,
 } from "@nestjs/common";
+import { LecturesService } from "../service/lectures.service";
 
 @Controller("lectures")
 export class LecturesController {
+  constructor(private readonly lectures: LecturesService) {}
+
   @Get()
   findAll() {
-    // TODO(1): Read active lectures and their class times through the service and repository.
-    throw new NotImplementedException("개설강의 조회 실습을 진행해 주세요.");
+    return this.lectures.findAll();
   }
 
   @Delete(":id")
