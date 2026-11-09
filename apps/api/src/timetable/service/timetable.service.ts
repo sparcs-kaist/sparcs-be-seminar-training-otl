@@ -1,8 +1,17 @@
-import type { Lecture } from "@mini-otl/contracts";
-import { Injectable, NotImplementedException } from "@nestjs/common";
+import type { ClassTime, Lecture } from "@mini-otl/contracts";
+import {
+  Injectable,
+  NotFoundException,
+  NotImplementedException,
+} from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { LectureRepository } from "../../lectures/repository/lecture.repository";
 import { TimetableRepository } from "../repository/timetable.repository";
+import { TimetableConflictException } from "./timetable-conflict.exception";
+
+function overlaps(a: ClassTime, b: ClassTime) {
+  return a.day === b.day && a.begin < b.end && b.begin < a.end;
+}
 
 @Injectable()
 export class TimetableService {
@@ -22,12 +31,29 @@ export class TimetableService {
   }
 
   private async addIfAvailable(
-    _userId: number,
-    _lectureId: number,
-    _db: Prisma.TransactionClient,
+    userId: number,
+    lectureId: number,
+    db: Prisma.TransactionClient,
   ): Promise<void> {
-    // TODO(06a): Check the lecture and existing slots before inserting.
-    throw new NotImplementedException("시간표 담기를 구현해 주세요.");
+    const lecture = await this.lectures.findActive(lectureId, db);
+    if (!lecture) {
+      throw new NotFoundException("개설강의를 찾을 수 없습니다.");
+    }
+
+    const scheduled = await this.timetable.findByUser(userId, db);
+    if (scheduled.some(existing => existing.id === lectureId)) return;
+
+    const conflict = scheduled.find(
+      existing =>
+        existing.year === lecture.year &&
+        existing.semester === lecture.semester &&
+        existing.classes.some(slot =>
+          lecture.classes.some(candidate => overlaps(slot, candidate)),
+        ),
+    );
+    if (conflict) throw new TimetableConflictException(conflict);
+
+    await this.timetable.add(userId, lectureId, db);
   }
 
   async removeLecture(_userId: number, _lectureId: number): Promise<void> {
