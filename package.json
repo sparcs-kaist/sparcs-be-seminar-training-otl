@@ -6,7 +6,7 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "pnpm db:up && pnpm db:deploy && pnpm db:generate && dotenv -e .env -- concurrently --names web,api --prefix-colors magenta,cyan \"pnpm --filter @mini-otl/web dev\" \"pnpm --filter @mini-otl/api dev\"",
+    "dev": "pnpm db:up && pnpm db:generate && dotenv -e .env -- concurrently --names web,api --prefix-colors magenta,cyan \"pnpm --filter @mini-otl/web dev\" \"pnpm --filter @mini-otl/api dev\"",
     "check": "pnpm -r check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

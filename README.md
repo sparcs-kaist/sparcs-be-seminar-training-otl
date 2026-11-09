@@ -41,17 +41,18 @@ docker info
 
 ### 2. 의존성 설치와 개발 서버 실행
 
+처음 실행하거나 실습 DB를 새로 만들었을 때 아래 순서대로 실행하세요.
+
 ```sh
 pnpm install --frozen-lockfile
+pnpm db:up
+pnpm db:deploy
 pnpm dev
 ```
 
-`pnpm dev`는 아래 순서대로 실행합니다. 앱이 뜨기 전까지는 몇 초 정도 걸릴 수 있고, 처음에는 MySQL 이미지도 받아야 합니다.
-
-1. Docker에서 MySQL을 시작하고 접속 가능해질 때까지 기다립니다.
-2. `apps/api/prisma/migrations`의 기존 마이그레이션을 DB에 적용합니다. 이 과정에서 실습 계정과 강의가 만들어집니다.
-3. `schema.prisma`에 맞춰 TypeScript용 Prisma Client를 생성합니다.
-4. Nest API와 Next 화면을 켭니다. 소스 파일을 저장하면 개발 서버가 변경을 반영합니다.
+- `pnpm db:up`은 Docker에서 MySQL을 시작하고 접속할 수 있을 때까지 기다립니다. 처음에는 MySQL 이미지도 받아야 합니다.
+- `pnpm db:deploy`는 `apps/api/prisma/migrations`에 있는 마이그레이션을 DB에 적용합니다. 이때 초기 테이블, 실습 계정, 강의 데이터가 만들어집니다.
+- `pnpm dev`는 MySQL을 시작하고 Prisma Client를 생성한 뒤 Nest API와 Next 화면을 켭니다. 이미 준비한 DB에서는 `pnpm dev`만 실행하면 됩니다.
 
 | 주소                                 | 하는 일                             | 언제 쓰나요?                                         |
 | ------------------------------------ | ----------------------------------- | ---------------------------------------------------- |
@@ -155,7 +156,7 @@ HTTP 요청 → Controller ────┐
 
 ## MySQL과 마이그레이션
 
-03과 08에서는 다음 순서로 작업합니다. 마이그레이션 이름은 문제 문서에 나옵니다.
+저장소에 있는 마이그레이션을 적용할 때는 `pnpm db:deploy`를 사용합니다. 03과 08에서 스키마를 수정하고 새 마이그레이션을 만들 때는 아래 순서로 작업하세요. 마이그레이션 이름은 문제 문서에 나옵니다.
 
 1. `schema.prisma`에 모델, 필드, 관계를 추가합니다.
 2. MySQL이 켜진 상태에서 `pnpm db:migrate --name 이름`을 실행합니다. Prisma가 개발용 shadow DB에서 이력을 비교하고 새 변경 SQL을 생성해 실습 DB에 적용합니다.
@@ -182,7 +183,7 @@ SQL
 - `pnpm db:down`은 컨테이너를 내리고 실습 데이터 볼륨을 남깁니다. 다시 `pnpm dev`를 실행하면 이전 데이터가 보입니다.
 - 다른 브랜치의 답안을 실제로 실행할 때는 별도 DB를 권장합니다. 직접 생성한 마이그레이션과 답안의 마이그레이션은 파일 이름과 이력이 다를 수 있습니다. `git show`로 답안만 읽을 때는 DB를 바꿀 필요가 없습니다.
 - 새 DB를 나란히 쓰려면 별도 체크아웃의 `.env`에서 `MYSQL_PORT`, `DATABASE_URL`, `SHADOW_DATABASE_URL`에 같은 새 포트(예: `13307`)를 설정하고, 그 체크아웃에서 `export COMPOSE_PROJECT_NAME=mini-otl-answer`를 실행한 뒤 관련 명령을 실행하세요. 다른 터미널에서 `db_sql`을 호출할 때도 같은 Compose 프로젝트 이름을 설정하세요. 앱 포트는 기존 앱을 종료해서 비워 둡니다.
-- 실습 DB를 처음부터 다시 만들고 싶고 기존 데이터가 필요 없을 때만 `docker compose down -v`를 실행하세요. 현재 Compose 프로젝트의 DB 볼륨을 지웁니다.
+- 실습 DB를 처음부터 다시 만들고 싶고 기존 데이터가 필요 없을 때만 `docker compose down -v`를 실행하세요. 현재 Compose 프로젝트의 DB 볼륨을 지웁니다. 초기화한 뒤에는 `pnpm db:up`, `pnpm db:deploy`, `pnpm dev` 순서로 실행하세요.
 
 ## 답안 보는 법
 
@@ -190,8 +191,8 @@ SQL
 
 ```sh
 git fetch origin
-git log --reverse --oneline origin/main..origin/guided-answer
-FIRST_STEP=$(git rev-list --reverse origin/main..origin/guided-answer | head -n 1)
+git log --reverse --no-merges --oneline origin/main..origin/guided-answer
+FIRST_STEP=$(git rev-list --reverse --no-merges origin/main..origin/guided-answer | head -n 1)
 git show "$FIRST_STEP"
 ```
 
@@ -200,7 +201,7 @@ git show "$FIRST_STEP"
 ```sh
 git remote add upstream https://github.com/sparcs-kaist/sparcs-be-seminar-training-otl.git
 git fetch upstream
-git log --reverse --oneline upstream/main..upstream/guided-answer
+git log --reverse --no-merges --oneline upstream/main..upstream/guided-answer
 ```
 
 위 예시는 첫 번째 답안 커밋을 엽니다. 현재 문제의 답안을 보려면 목록에서 같은 문제 번호가 붙은 커밋 해시를 골라 `git show`에 전달하세요. 03a와 08a에는 답안에서 실제로 생성한 마이그레이션 SQL도 있습니다.
@@ -214,6 +215,7 @@ git log --reverse --oneline upstream/main..upstream/guided-answer
 | `address already in use` 또는 `EADDRINUSE`가 나옵니다. | 다른 실습 프로세스나 컨테이너가 3000, 3001, 3002, 13306 중 같은 포트를 쓰는지 확인합니다. `docker compose ps`와 기존 실행 터미널부터 보세요. |
 | `curl`이 연결을 거부합니다.                            | Nest 실행 터미널에 시작 로그가 있는지, 명령의 포트가 3001인지 확인합니다. 요청을 보내는 터미널의 `$API`도 확인합니다.                        |
 | 보호 API가 계속 `401`입니다.                           | 02에서 토큰을 다시 발급받고 같은 터미널에서 요청합니다. `-H "Authorization: Bearer $TOKEN"`의 공백과 큰따옴표를 확인하세요.                  |
+| 실습 계정이나 테이블이 없습니다.                       | 처음 쓰는 DB라면 `pnpm db:deploy`로 초기 마이그레이션을 적용하세요.                                                                          |
 | 스키마를 바꿨는데 Prisma에 모델이 없습니다.            | 스키마 경로, 마이그레이션 결과, `pnpm db:generate` 순으로 확인한 뒤 Nest를 재시작합니다.                                                     |
 | Prisma가 DB 초기화를 요구합니다.                       | 이전에 실행한 브랜치와 현재 브랜치의 마이그레이션 이력이 같은지 확인합니다. 데이터를 유지해야 한다면 별도 DB로 실행하세요.                   |
 | `200`인데 시간표가 빈 배열입니다.                      | 03의 SQL 또는 06의 담기 요청을 실행했는지, 담은 계정과 조회한 토큰이 같은지 확인합니다.                                                      |
