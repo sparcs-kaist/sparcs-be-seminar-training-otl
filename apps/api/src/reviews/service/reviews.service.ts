@@ -15,8 +15,9 @@ export class ReviewsService {
     private readonly lectures: LectureRepository,
   ) {}
 
-  async findAll(lectureId: number) {
-    const reviews = await this.reviews.findForLecture(lectureId);
+  @Transactional()
+  async findAll(lectureId: number, viewerId?: number) {
+    const reviews = await this.reviews.findForLecture(lectureId, viewerId);
     if (!reviews) throw new NotFoundException("개설강의를 찾을 수 없습니다.");
     return reviews;
   }
@@ -27,7 +28,7 @@ export class ReviewsService {
     const review = await this.reviews.create(lectureId, userId, content);
     if (!review)
       throw new ConflictException("이 강의에 이미 작성한 리뷰가 있습니다.");
-    return review;
+    return { ...review, heartedByMe: false };
   }
 
   @Transactional()
@@ -39,6 +40,28 @@ export class ReviewsService {
 
     const { count } = await this.reviews.remove(reviewId);
     if (!count) throw new NotFoundException("리뷰를 찾을 수 없습니다.");
+  }
+
+  @Transactional()
+  async setHeart(
+    lectureId: number,
+    reviewId: number,
+    userId: number,
+    hearted: boolean,
+  ) {
+    await this.requireActiveLecture(lectureId);
+    const authorId = await this.requireReviewAuthor(lectureId, reviewId);
+    if (authorId === userId)
+      throw new ForbiddenException(
+        "본인이 작성한 리뷰에는 하트를 누를 수 없습니다.",
+      );
+
+    const { count } = hearted
+      ? await this.reviews.addHeart(reviewId, userId)
+      : await this.reviews.removeHeart(reviewId, userId);
+    if (count > 0) {
+      await this.reviews.changeHeartCount(reviewId, hearted ? 1 : -1);
+    }
   }
 
   private async requireActiveLecture(lectureId: number) {

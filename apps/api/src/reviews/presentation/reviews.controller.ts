@@ -4,8 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
-  NotImplementedException,
   Param,
   Post,
   Req,
@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import { reviewContentLimit, reviewContentSchema } from "@mini-otl/contracts";
 import { JwtAuthGuard } from "../../auth/presentation/jwt-auth.guard";
+import { OptionalJwtAuthGuard } from "../../auth/presentation/optional-jwt-auth.guard";
 import type { AuthenticatedUser } from "../../auth/presentation/jwt.strategy";
 import { ResourceIdPipe } from "../../common/resource-id.pipe";
 import { ReviewsService } from "../service/reviews.service";
@@ -24,8 +25,13 @@ export class ReviewsController {
   constructor(private readonly reviews: ReviewsService) {}
 
   @Get()
-  findAll(@Param("lectureId", ResourceIdPipe) lectureId: number) {
-    return this.reviews.findAll(lectureId);
+  @UseGuards(OptionalJwtAuthGuard)
+  @Header("Cache-Control", "no-store")
+  findAll(
+    @Param("lectureId", ResourceIdPipe) lectureId: number,
+    @Req() { user }: Partial<ReviewRequest>,
+  ) {
+    return this.reviews.findAll(lectureId, user?.id);
   }
 
   @Post()
@@ -55,14 +61,24 @@ export class ReviewsController {
   }
 
   @Post(":reviewId/heart")
-  addHeart() {
-    // TODO(8): Insert a heart and update the review's count in the same transaction.
-    throw new NotImplementedException("리뷰 하트 실습을 진행해 주세요.");
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(204)
+  addHeart(
+    @Param("lectureId", ResourceIdPipe) lectureId: number,
+    @Param("reviewId", ResourceIdPipe) reviewId: number,
+    @Req() { user }: ReviewRequest,
+  ) {
+    return this.reviews.setHeart(lectureId, reviewId, user.id, true);
   }
 
   @Delete(":reviewId/heart")
-  removeHeart() {
-    // TODO(8): Remove the heart and update the review's count in the same transaction.
-    throw new NotImplementedException("리뷰 하트 취소 실습을 진행해 주세요.");
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(204)
+  removeHeart(
+    @Param("lectureId", ResourceIdPipe) lectureId: number,
+    @Param("reviewId", ResourceIdPipe) reviewId: number,
+    @Req() { user }: ReviewRequest,
+  ) {
+    return this.reviews.setHeart(lectureId, reviewId, user.id, false);
   }
 }
