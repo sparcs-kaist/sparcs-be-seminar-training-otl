@@ -23,6 +23,14 @@ export const lectureSelection = {
 export class LectureRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  findAllActive() {
+    return this.prisma.lecture.findMany({
+      where: { deletedAt: null },
+      select: lectureSelection,
+      orderBy: [{ code: "asc" }, { classNo: "asc" }, { id: "asc" }],
+    });
+  }
+
   findActive(id: number, db: Prisma.TransactionClient = this.prisma) {
     return db.lecture.findUnique({
       where: { id, deletedAt: null },
