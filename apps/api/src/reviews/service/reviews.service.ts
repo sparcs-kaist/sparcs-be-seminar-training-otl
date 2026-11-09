@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   NotImplementedException,
@@ -20,9 +21,13 @@ export class ReviewsService {
     return this.reviews.findForLecture(lectureId, viewerId);
   }
 
-  async create(_lectureId: number, _userId: number, _content: string) {
-    // TODO(07b): Create a review and report a duplicate as a conflict.
-    throw new NotImplementedException("리뷰 작성을 구현해 주세요.");
+  async create(lectureId: number, userId: number, content: string) {
+    await this.requireActiveLecture(lectureId);
+    const review = await this.reviews.create(lectureId, userId, content);
+    if (!review) {
+      throw new ConflictException("이 강의에 이미 작성한 리뷰가 있습니다.");
+    }
+    return review;
   }
 
   async remove(
